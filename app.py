@@ -40,7 +40,7 @@ async def telegram(request: Request):
         return 'OK', 200
 
 
-@router.route('/set-telegram-webhook', methods=['POST'])
+@router.post('/set-telegram-webhook')
 async def set_telegram_webhook(request: Request):
     try:
         body = await request.json()
