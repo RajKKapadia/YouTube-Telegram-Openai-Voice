@@ -213,3 +213,36 @@ def save_file_and_get_local_path(file_path: str) -> dict:
             'file_id': '',
             'extension': ''
         }
+
+
+def send_audio(chat_id: int, url: str, caption: str = '') -> bool:
+    '''
+    Send an audio file to a Telegram user.
+
+    Parameters:
+        - chat_id(int): chat id of the user
+        - url(str): audio file url
+
+    Returns:
+        - bool: True for success, False for error 
+    '''
+
+    payload = {
+        'chat_id': chat_id,
+        'audio': url
+    }
+
+    if caption != '':
+        payload['caption'] = caption
+
+    headers = {'Content-Type': 'application/json'}
+
+    response = requests.request(
+        'POST', f'{BASE_URL}/sendAudio', json=payload, headers=headers)
+    status_code = response.status_code
+    response = json.loads(response.text)
+
+    if status_code == 200 and response['ok']:
+        return True
+    else:
+        return False
