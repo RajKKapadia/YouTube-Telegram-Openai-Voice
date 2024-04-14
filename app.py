@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Request
 
-from openai_apis import transcript_audio, chat_completion
-from telegram_api import send_message, set_webhook, get_file_path, save_file_and_get_local_path
+from openai_apis import text_to_speech, transcript_audio, chat_completion
+from telegram_api import send_audio, send_message, set_webhook, get_file_path, save_file_and_get_local_path
+from utils import upload_file_to_gcs
+import config
 
 router = APIRouter(
     prefix='',
@@ -24,15 +26,29 @@ async def telegram(request: Request):
             file_id = body['message']['voice']['file_id']
             file_path = get_file_path(file_id)
             if file_path['status'] == 1:
-                local_file_path = save_file_and_get_local_path(file_path['file_path'])
+                local_file_path = save_file_and_get_local_path(
+                    file_path['file_path'])
                 if local_file_path['status'] == 1:
-                    transcript = transcript_audio(local_file_path['local_file_path'], local_file_path['file_id'])
+                    transcript = transcript_audio(
+                        local_file_path['local_file_path'], local_file_path['file_id'])
                     if transcript['status'] == 1:
                         query = chat_completion(transcript['transcript'])
         else:
             query = body['message']['text']
         response = chat_completion(query)
-        send_message(sender_id, response)
+        """Convert this response to audio using the following function
+        audio_file_path = text_to_speech(response)
+        Then upload this audio_file to a cloud storage and get the public URL
+        audio_url = upload_file(audio_file_path)
+        you need to write the function upload_file
+        send_audio(audio_url)
+        """
+        if config.REPLY_TYPE == 'audio':
+            audio_file_path, audio_file_name = text_to_speech(response)
+            public_url = upload_file_to_gcs(audio_file_path, audio_file_name)
+            send_audio(sender_id, public_url, 'Response')
+        else:
+            send_message(sender_id, response)
         return 'OK', 200
     except Exception as e:
         print('Error at telegram...')
